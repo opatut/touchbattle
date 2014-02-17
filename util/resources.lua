@@ -10,11 +10,13 @@ function Resources:__init(prefix)
     self.musicQueue = {}
     self.fontQueue = {}
     self.soundQueue = {}
+    self.shaderQueue = {}
 
     self.images = {}
     self.music = {}
     self.fonts = {}
     self.sounds = {}
+    self.shaders = {}
 end
 
 function Resources:addFont(name, src, size)
@@ -32,6 +34,11 @@ end
 function Resources:addSound(name, src)
     self.soundQueue[name] = src
 end
+
+function Resources:addShader(name, fragment_file, vertex_file)
+    self.shaderQueue[name] = {fragment_file, vertex_file}
+end
+
 
 function Resources:load(threaded)
     for name, pair in pairs(self.fontQueue) do
@@ -52,6 +59,19 @@ function Resources:load(threaded)
     for name, src in pairs(self.soundQueue) do
         self.sounds[name] = love.sound.newSoundData(self.prefix .. src)
         self.soundQueue[name] = nil
+    end
+
+    for name, pair in pairs(self.shaderQueue) do
+        local pixelcode, vertexcode
+        if pair[1] then
+            pixelcode = love.filesystem.read(self.prefix .. pair[1])
+        end
+        if pair[2] then
+            vertexcode = love.filesystem.read(self.prefix .. pair[2])
+        end
+
+        self.shaders[name] = love.graphics.newShader(pixelcode, vertexcode)
+        self.shaderQueue[name] = nil
     end
 end
 

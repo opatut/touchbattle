@@ -56,6 +56,14 @@ function World:remove(entity)
     entity:kill()
 end
 
+function World:handleEvent(type, data)
+    for k,v in pairs(self.entities) do
+        if v:onEvent(type, data) then
+            return true
+        end
+    end
+end
+
 function World:removeDead()
     for k,v in pairs(self.entities) do
         if v.dead then
@@ -77,10 +85,10 @@ function World:update(dt)
     end
 
     self.physicsWorld:update(dt)
+    table.sort(self.entities, function(a, b) return a.z > b.z end)
 end
 
 function World:draw()
-    table.sort(self.entities, function(a, b) return a.z > b.z end)
     for k, v in pairs(self.entities) do
         v:draw()
     end

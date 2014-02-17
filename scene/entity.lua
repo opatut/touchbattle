@@ -12,6 +12,7 @@ function Entity:__init()
     self.scale = 1
     self.lifetime = 0
     self.dead = false
+    self.visible = true
 end
 
 function Entity:update(dt)
@@ -30,7 +31,7 @@ function Entity:update(dt)
 end
 
 function Entity:draw()
-    self:onDraw()
+    if self.visible then self:onDraw() end
 end
 
 
@@ -42,6 +43,9 @@ function Entity:onDraw() end
 function Entity:onUpdate(dt) end
 function Entity:onAdd() end
 function Entity:onRemove() end
+function Entity:onEvent(type, ...) 
+    return false 
+end
 function Entity:getPosition()
     return self.position
 end
