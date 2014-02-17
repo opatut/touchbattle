@@ -135,7 +135,7 @@ function Label:__init(text, pos, color, font)
     self.position = pos
     self.color = color or {255, 255, 255}
     self.font = font or resources.fonts.default
-    self.scale = 1
+    self.scale = Vector(1, 1)
     self.z = 10000
 end
 
@@ -145,13 +145,13 @@ function Label:onDraw()
     local w = self.font:getWidth(self.text)
     local h = self.font:getHeight()
 
-    shader:send("size", {w/self.scale, h/self.scale})
+    shader:send("size", {w/self.scale.x, h/self.scale.y})
 
     -- draw
     love.graphics.setColor(unpack(self.color))
     love.graphics.setFont(self.font)
     love.graphics.setShader(shader)
-    love.graphics.print(self.text, self.position.x - w / 2 * s, self.position.y - h / 2 * s, self.rotation, s, s)
+    love.graphics.printf(self.text, self.position.x - w / 2 * s.x, self.position.y - h / 2 * s.y, w, "center", self.rotation, s.x, s.y)
 
     -- cleanup
     love.graphics.setShader()
@@ -174,6 +174,9 @@ function Player:__init(id)
     self.mode = MODES.SELECT_COLOR
     self.modeTime = 0
     self.percent = 0.5
+
+    self.stats = {}
+    self.stats.touches = 0
 
     self.modeLabel = Label(self.mode, Vector(0, 0))
     self.overlay:add(self.modeLabel)
@@ -319,7 +322,9 @@ function Player:update(dt)
     end
 
     -- mode label
-    self.modeLabel.scale = 1 - 0.02 * getPulse()
+    -- self.modeLabel.scale.x = 1 - 0.02 * getPulse()
+    self.modeLabel.scale.x = 0.99 + 0.02 * math.sin(TIME * math.pi * 2 * 2)
+    self.modeLabel.scale.y = 0.95 + 0.10 * math.sin(math.pi + TIME * math.pi * 2 * 2)
     self.modeLabel.position.y = - HEIGHT + self.modeLabel.font:getHeight() / SCALE
     if self.mode == MODES.WIN or self.mode == MODES.LOSE then
         self.modeLabel.color = self.color
@@ -345,8 +350,10 @@ end
 function Player:touchpressed(id, x, y, p)
     local p = self:screenToLocal(Vector(x * love.graphics.getWidth(), y * love.graphics.getHeight()))
     if p.y > -HEIGHT then
+        -- activity
         if self.mode == MODES.TAP then
             self:active(0.1, p.x)
+            self.stats.touches = self.stats.touches + 1
         end
     end
 
@@ -377,11 +384,23 @@ function Player:adjustPercent(change)
 end
 
 function Player:win()
-    self:setMode(MODES.WIN)
+    if self.mode ~= MODES.WIN then
+        self:setMode(MODES.WIN)
+        self:displayStats()
+    end
 end
 
 function Player:lose()
-    self:setMode(MODES.LOSE)
+    if self.mode ~= MODES.LOSE then
+        self:setMode(MODES.LOSE)
+        self:displayStats()
+    end
+end
+
+function Player:displayStats()
+    local l = Label(string.format("%d times tapped\n\nTouch center to restart", self.stats.touches), Vector(0, -HEIGHT/2))
+    l.scale = Vector(0.5, 0.5)
+    self.overlay:add(l)
 end
 
 --------------------------------------------------------------------------------
@@ -396,6 +415,7 @@ p1, p2 = nil, nil
 function love.load()
     resources:addFont("default", "BD_Cartoon_Shout.ttf", 70)
     resources:addFont("large", "BD_Cartoon_Shout.ttf", 160)
+    resources:addFont("small", "BD_Cartoon_Shout.ttf", 40)
     resources:addImage("blur", "blur.png")
     resources:addImage("star", "star.png")
     resources:addImage("colorbutton", "color-button.png")
