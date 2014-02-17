@@ -423,8 +423,13 @@ function love.load()
     resources:addShader("border", "border.glsl")
     resources:load()
 
+    reset()
+end
+
+function reset()
     players = {Player(0), Player(1)}
     p1, p2 = players[1], players[2]
+    TIME = 0
 end
 
 function love.update(dt)
@@ -437,7 +442,7 @@ function love.update(dt)
     end 
 
     local diff = p1.activity - p2.activity
-    local change = diff * dt * 0.1
+    local change = diff * dt * 0.1 * math.pow(TIME/10, 2)
     p1:adjustPercent(change)
     p2:adjustPercent(-change)
 
@@ -450,9 +455,7 @@ function love.touchpressed(id, x, y, p)
     end
 
     if x > 0.45 and x < 0.55 and y > 0.4 and y < 0.6 then
-        -- reset
-        players = {Player(0), Player(1)}
-        p1, p2 = players[1], players[2]
+        reset()
     end
 end
 
