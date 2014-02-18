@@ -17,3 +17,7 @@ MODES.SWIPE = "swipe"
 MODES.SPIN = "spin"
 MODES.WIN = "victory"
 MODES.LOSE = "defeat"
+
+-- tweak settings
+SPIN_MIN_RADIUS = 20 -- width: 200
+METER_PER_PIXEL = 1/2800 -- 72 dpi = ~28 dots per cm

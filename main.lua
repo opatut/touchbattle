@@ -21,6 +21,9 @@ resources = Resources("data/")
 TIME = 0
 players = {}
 p1, p2 = nil, nil
+playing = false
+modeDuration = 0
+modeTime = 0
 
 function love.load()
     resources:addFont("default", "BD_Cartoon_Shout.ttf", 70)
@@ -36,6 +39,20 @@ function love.load()
     reset()
 end
 
+function nextMode()
+    modeDuration = math.random() * 10 + 5
+    modeTime = 0
+    local modes = {MODES.TAP, MODES.SPIN}
+    local mode, oldMode = nil, p1.mode
+
+    repeat
+        mode = modes[math.random(#modes)]
+    until mode ~= oldMode
+
+    p1:setMode(mode)
+    p2:setMode(mode)
+end
+
 function reset()
     players = {Player(0), Player(1)}
     p1, p2 = players[1], players[2]
@@ -46,6 +63,13 @@ function love.update(dt)
     TIME = TIME + dt
     SCALE = love.graphics.getHeight() / 200
     HEIGHT = love.graphics.getWidth() / 2 / SCALE
+
+    if playing then
+        modeTime = modeTime + dt
+        if modeTime >= modeDuration then
+            nextMode()
+        end
+    end
 
     for i,p in pairs(players) do
         p:update(dt)
@@ -107,4 +131,11 @@ function love.draw()
     x = love.graphics.getWidth() * p1.percent
     love.graphics.line(x-3, 0, x-3, love.graphics.getHeight())
     love.graphics.line(x+3, 0, x+3, love.graphics.getHeight())
+
+    if modeDuration and playing then
+        local p = modeTime / modeDuration
+        local x = love.graphics.getWidth() * 0.5
+        love.graphics.setColor(0, 255, 0)
+        love.graphics.rectangle("fill", x - 4, love.graphics.getHeight() * (0.5 - 0.5 * p), 8, love.graphics.getHeight() * p)
+    end
 end

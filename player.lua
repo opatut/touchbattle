@@ -20,6 +20,8 @@ function Player:__init(id)
 
     self.stats = {}
     self.stats.touches = 0
+    self.stats.spinAngle = 0
+    self.stats.spinDistance = 0
 
     self.modeLabel = Label(self.mode, Vector(0, 0))
     self.overlay:add(self.modeLabel)
@@ -27,6 +29,9 @@ function Player:__init(id)
     self.countdownLabel = Label("?", Vector(0, 0), nil, resources.fonts.large)
     self.countdownLabel.visible = false
     self.overlay:add(self.countdownLabel)
+
+    self.spinId = -1
+    self.spinStart = nil
 
     self.p = love.graphics.newParticleSystem(resources.images.blur)
 
@@ -156,8 +161,8 @@ function Player:update(dt)
         if other.mode == MODES.READY then
             self.modeTime = p1.modeTime
             if self.modeTime > 1.5 then
-                self:setMode(MODES.TAP)
-                other:setMode(MODES.TAP)
+                playing = true
+                nextMode()
             end
         else
             self.modeTime = 0
@@ -192,12 +197,15 @@ end
 
 function Player:touchpressed(id, x, y, p)
     local p = self:screenToLocal(Vector(x * love.graphics.getWidth(), y * love.graphics.getHeight()))
-    if p.y > -HEIGHT then
-        -- activity
-        if self.mode == MODES.TAP then
-            self:active(0.1, p.x)
-            self.stats.touches = self.stats.touches + 1
-        end
+    if p.y < -HEIGHT then return end
+
+    -- tap activity
+    if self.mode == MODES.TAP then
+        self:active(0.1, p.x)
+        self.stats.touches = self.stats.touches + 1
+    elseif self.mode == MODES.SPIN and not self.spinStart then
+        self.spinStart = p
+        self.spinId = id
     end
 
     self.world:handleEvent("touchpressed", {id=id, x=p.x, y=p.y, p=p})
@@ -206,11 +214,38 @@ end
 function Player:touchreleased(id, x, y, p)
     local p = self:screenToLocal(Vector(x * love.graphics.getWidth(), y * love.graphics.getHeight()))
     self.world:handleEvent("touchreleased", {id=id, x=p.x, y=p.y, p=p})
+
+    if self.spinId == id then
+        self.spinId = -1
+        self.spinStart = nil
+    end
 end
 
 function Player:touchmoved(id, x, y, p)
     local p = self:screenToLocal(Vector(x * love.graphics.getWidth(), y * love.graphics.getHeight()))
     self.world:handleEvent("touchmoved", {id=id, x=p.x, y=p.y, p=p})
+
+    if p.y < -HEIGHT then return end
+    if self.mode == MODES.SPIN and id == self.spinId then
+        local center = Vector(0, -HEIGHT/2)
+        -- check that p is outside min radius
+        if (center-p):len() < SPIN_MIN_RADIUS then
+            -- inside, pause spinning
+            self.spinStart = nil
+        else
+            if self.spinStart then
+                local angle = (self.spinStart - center):angleTo(p - center)
+                self:active(angle * 0.1)
+
+                self.stats.spinAngle = self.stats.spinAngle + angle
+                self.stats.spinDistance = self.stats.spinDistance + (self.spinStart - p):len() / love.window.getPixelScale() * METER_PER_PIXEL
+
+                self.spinStart = p
+            else
+                self.spinStart = p
+            end
+        end
+    end
 end
 
 function Player:screenToLocal(screen)
@@ -227,6 +262,7 @@ function Player:adjustPercent(change)
 end
 
 function Player:win()
+    playing = false
     if self.mode ~= MODES.WIN then
         self:setMode(MODES.WIN)
         self:displayStats()
@@ -234,6 +270,7 @@ function Player:win()
 end
 
 function Player:lose()
+    playing = false
     if self.mode ~= MODES.LOSE then
         self:setMode(MODES.LOSE)
         self:displayStats()
@@ -241,8 +278,7 @@ function Player:lose()
 end
 
 function Player:displayStats()
-    local l = Label(string.format("%d times tapped\n\nTouch center to restart", self.stats.touches), Vector(0, -HEIGHT/2))
+    local l = Label(string.format("%d times tapped\n%d turns spun\n%.2f meters wiped\n\nTouch center to restart", self.stats.touches, self.stats.spinAngle / math.pi / 2, self.stats.spinDistance), Vector(0, -HEIGHT/2))
     l.scale = Vector(0.5, 0.5)
     self.overlay:add(l)
 end
-
