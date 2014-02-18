@@ -162,3 +162,23 @@ function math.round(num, idp)
     local mult = 10^(idp or 0)
     return math.floor(num * mult + 0.5) / mult
 end
+
+function getTouches()
+    local function _getTouches()
+        local touches = {}
+        for i=1,love.touch.getTouchCount() do
+            local id, x, y, p = love.touch.getTouch(i)
+            local touch = {}
+            touch.id = id
+            touch.x = x * love.graphics.getWidth()
+            touch.y = y * love.graphics.getHeight()
+            touch.p = p
+            table.insert(touches, touch)
+        end
+        return touches
+    end
+
+    local e, r = pcall(_getTouches)
+    return e and r or {}
+end
+
